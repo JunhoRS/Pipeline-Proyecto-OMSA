@@ -1,0 +1,44 @@
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: CI
+    source: 'Coffee Machine CI'
+    trigger: 
+      - main
+      - develop
+
+stages:
+- stage: DeployToDev
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  jobs:
+  - deployment: DeployToDev
+    pool: 
+      vmImage: 'ubuntu-latest'
+    environment: 'development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            inputs:
+              azureSubscription: 'Azure subscription'
+              appName: 'coffee-machine-dev'
+              containers: 'coffee-machine:$(resources.pipeline.CI.runID)'
+
+- stage: DeployToProd
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployToProd
+    pool: 
+      vmImage: 'ubuntu-latest'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            inputs:
+              azureSubscription: 'Azure subscription'
+              appName: 'coffee-machine-prod'
+              containers: 'coffee-machine:$(resources.pipeline.CI.runID)'
